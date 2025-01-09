@@ -1,5 +1,5 @@
 import { AIMessageChunk } from '@langchain/core/messages';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { createLangGraphWorkflow } from 'src/common/langgraph.workflow';
 import { ChatConfig } from 'src/common/types/chat-config.interface';
@@ -11,11 +11,7 @@ export class LangchainService {
   private readonly userSessions: Map<string, string>;
 
   constructor() {
-    const apiKey = process.env.OPEN_API_KEY;
-    if (!apiKey) {
-      throw new InternalServerErrorException('OPENAI_API_KEY is not defined');
-    }
-    this.langGraphApp = createLangGraphWorkflow(apiKey);
+    this.langGraphApp = createLangGraphWorkflow();
     this.userSessions = new Map();
   }
 
@@ -36,7 +32,6 @@ export class LangchainService {
         thread_id: threadId,
       },
     };
-
     return await this.langGraphApp.invoke({ messages: input }, config);
   }
 }
