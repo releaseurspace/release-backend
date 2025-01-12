@@ -36,17 +36,17 @@ export class PropertyEntity extends CommonEntity {
   @Column('varchar', { nullable: true })
   distance_to_station: string;
 
-  @Column('varchar')
-  monthly_rent: string;
+  @Column('int')
+  monthly_rent: number;
 
-  @Column('varchar')
-  deposit: string;
+  @Column('int')
+  deposit: number;
 
-  @Column('varchar')
-  key_money: string;
+  @Column('int')
+  key_money: number;
 
-  @Column('varchar')
-  maintenance_fee: string;
+  @Column('int')
+  maintenance_fee: number;
 
   @Column('text')
   agent_comment: string;
