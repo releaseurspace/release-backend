@@ -1,3 +1,4 @@
+import { PineconeService } from './../common/services/pinecone.service';
 import { AIMessageChunk } from '@langchain/core/messages';
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,7 +11,7 @@ export class LangchainService {
   private readonly langGraphApp;
   private readonly userSessions: Map<string, string>;
 
-  constructor() {
+  constructor(private readonly pineconeService: PineconeService) {
     this.langGraphApp = createLangGraphWorkflow();
     this.userSessions = new Map();
   }
@@ -27,11 +28,20 @@ export class LangchainService {
   async test(body: ChatInputDto): Promise<AIMessageChunk> {
     const { userId, ...input } = body;
     const threadId = this.getOrCreateThreadId(userId);
+    const vectors = await this.pineconeService.getSimilarVectors(
+      'seoul',
+      'jongno',
+      input.content,
+    );
     const config: ChatConfig = {
       configurable: {
         thread_id: threadId,
       },
     };
-    return await this.langGraphApp.invoke({ messages: input }, config);
+    const input2 = {
+      messages: input,
+      vectors,
+    };
+    return await this.langGraphApp.invoke(input2, config);
   }
 }
