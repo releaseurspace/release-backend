@@ -17,7 +17,8 @@ export class PineconeService {
     });
   }
 
-  async init(index: string, namespace: string) {
+  // 시, 구 정보를 받아 필터링
+  private async init(index: string, namespace: string) {
     const pineconeIndex = this.pinecone.index(index);
     this.pinconeStore = await PineconeStore.fromExistingIndex(
       this.embeddingsModel,
@@ -28,9 +29,23 @@ export class PineconeService {
     );
   }
 
-  async getSimilarVectors(index: string, namespace: string, query: string) {
+  // 유사도 높은 벡터 5개 찾는 함수
+  // TODO: 메타데이터 필터링 기능 추가하기
+  async getSimilarVectors(
+    index: string,
+    namespace: string,
+    query: string,
+    filter: any,
+  ) {
     await this.init(index, namespace);
-    const similarVectors = await this.pinconeStore.similaritySearch(query, 5);
+
+    const hasValidFilter = filter && Object.keys(filter).length > 0;
+
+    const similarVectors = await this.pinconeStore.similaritySearch(
+      query,
+      3,
+      hasValidFilter ? filter : undefined,
+    );
     return similarVectors;
   }
 }

@@ -28,11 +28,6 @@ export class LangchainService {
   async test(body: ChatInputDto): Promise<AIMessageChunk> {
     const { userId, ...input } = body;
     const threadId = this.getOrCreateThreadId(userId);
-    const vectors = await this.pineconeService.getSimilarVectors(
-      'seoul',
-      'jongno',
-      input.content,
-    );
     const config: ChatConfig = {
       configurable: {
         thread_id: threadId,
@@ -40,7 +35,6 @@ export class LangchainService {
     };
     const input2 = {
       messages: input,
-      vectors,
     };
     return await this.langGraphApp.invoke(input2, config);
   }
