@@ -74,4 +74,7 @@ export class PropertyEntity extends CommonEntity {
 
   @Column('varchar')
   property_registry: string;
+
+  @Column('varchar')
+  namespace: string;
 }
