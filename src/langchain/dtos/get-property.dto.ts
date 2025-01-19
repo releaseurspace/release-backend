@@ -5,6 +5,12 @@ export class GetPropertyDto {
   @ApiProperty({ description: 'id' })
   id: number;
 
+  @ApiProperty({ description: '위도' })
+  latitude: string;
+
+  @ApiProperty({ description: '경도' })
+  longitude: string;
+
   @ApiProperty({ description: '부동산 용도' })
   purpose: string;
 
@@ -37,6 +43,8 @@ export class GetPropertyDto {
 
   constructor(property: PropertyEntity) {
     this.id = property.id;
+    this.latitude = property.latitude;
+    this.longitude = property.longitude;
     this.purpose = property.purpose;
     this.deposit = property.deposit;
     this.monthly_rent = property.monthly_rent;
