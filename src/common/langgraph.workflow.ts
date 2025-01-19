@@ -23,6 +23,7 @@ export const GraphAnnotation = Annotation.Root({
   embeddingQuery: Annotation<string>(),
   vectors: Annotation<any[]>(),
   route: Annotation<string>(),
+  currentResponse: Annotation<string>(),
 });
 
 // LangGraph 워크플로우 생성을 위한 팩토리
@@ -114,20 +115,19 @@ export const createLangGraphWorkflow = () => {
       history: messageHistory,
     });
     const response = await llm.invoke(prompt);
-    return { messages: response };
+    return { messages: response, currentResponse: response.content };
   };
 
   // 매물 추천 대화 로직
   const generateRecommendationResponse = async (
     state: typeof GraphAnnotation.State,
   ) => {
-    console.log(state);
     const prompt = await recommendationResponsePromptTemplate.invoke({
       messages: state.messages,
       vectors: state.vectors,
     });
     const response = await llm.invoke(prompt);
-    return { messages: response };
+    return { messages: response, currentResponse: response.content };
   };
 
   const workflow = new StateGraph(GraphAnnotation)
