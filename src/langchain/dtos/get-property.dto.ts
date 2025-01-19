@@ -32,8 +32,8 @@ export class GetPropertyDto {
   @ApiProperty({ description: '설명' })
   description: string;
 
-  @ApiProperty({ description: '건물 정보' })
-  building_info: string;
+  @ApiProperty({ description: '층수' })
+  floor: string;
 
   @ApiProperty({ description: '가장 가까운 지하철역' })
   nearest_station: string;
@@ -52,7 +52,7 @@ export class GetPropertyDto {
     this.maintenance_fee = property.maintenance_fee;
     this.size = Math.round(property.size_sqm / 3.3);
     this.description = property.description;
-    this.building_info = property.building_info;
+    this.floor = property.floor;
     this.nearest_station = property.nearest_station;
     this.distance_to_station = property.distance_to_station;
   }
