@@ -45,15 +45,22 @@ export class LangchainService {
         content,
       },
     };
-    const llmReponse = await this.langGraphApp.invoke(input, config);
-    if (llmReponse.vectors && llmReponse.route === 'SEARCH') {
-      const propertyIds = llmReponse.vectors.map((vector) => {
-        return vector.metadata.psql_id;
-      });
-      const properties = await this.getProperties(propertyIds);
-      return new ChatResponseDto(llmReponse.currentResponse, properties);
-    } else {
-      return new ChatResponseDto(llmReponse.currentResponse, []);
+    try {
+      const llmReponse = await this.langGraphApp.invoke(input, config);
+      if (llmReponse.vectors && llmReponse.route === 'SEARCH') {
+        const propertyIds = llmReponse.vectors.map((vector) => {
+          return vector.metadata.psql_id;
+        });
+        const properties = await this.getProperties(propertyIds);
+        return new ChatResponseDto(llmReponse.currentResponse, properties);
+      } else {
+        return new ChatResponseDto(llmReponse.currentResponse, []);
+      }
+    } catch (error) {
+      return new ChatResponseDto(
+        '죄송해요. 일시적인 오류로 응답을 생성하는데에 실패했어요.😢',
+        [],
+      );
     }
   }
 
