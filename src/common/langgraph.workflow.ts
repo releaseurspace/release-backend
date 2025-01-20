@@ -39,7 +39,7 @@ export const createLangGraphWorkflow = () => {
   // 사용자 메시지가 부동산 관련 질문인지, 무관한 질문인지 판단하는 로직
   const routeQuery = async (state: typeof GraphAnnotation.State) => {
     const currentMessage = state.messages.slice(-1);
-    const messageHistory = state.messages.slice(0, -1);
+    const messageHistory = state.messages.slice(-3, -1);
     const prompt = await routerPromptTemplate.invoke({
       current: currentMessage,
       history: messageHistory,
@@ -109,10 +109,10 @@ export const createLangGraphWorkflow = () => {
   ) => {
     console.log(state);
     const currentMessage = state.messages.slice(-1);
-    const messageHistory = state.messages.slice(0, -1);
+    const history = state.messages.slice(-3, -1);
     const prompt = await generalResponsePromptTemplate.invoke({
       current: currentMessage,
-      history: messageHistory,
+      history,
     });
     const response = await llm.invoke(prompt);
     return { messages: response, currentResponse: response.content };
@@ -122,6 +122,7 @@ export const createLangGraphWorkflow = () => {
   const generateRecommendationResponse = async (
     state: typeof GraphAnnotation.State,
   ) => {
+    console.log(state);
     const prompt = await recommendationResponsePromptTemplate.invoke({
       messages: state.messages,
       vectors: state.vectors,
