@@ -10,8 +10,8 @@ import { ChatInputDto } from './dtos/chat-input.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PropertyEntity } from 'src/entities/property.entity';
-import { ChatResponseDto } from './dtos/char-response.dto';
-import { GetPropertyDto } from './dtos/get-property.dto';
+import { PropertyService } from 'src/property/property.service';
+import { ChatResponseDto } from './dtos/chat-response.dto';
 import { Observable } from 'rxjs';
 
 @Injectable()
@@ -19,10 +19,7 @@ export class LangchainService {
   private readonly langGraphApp: LangGraphWorkflow;
   private readonly userSessions: Map<string, string>;
 
-  constructor(
-    @InjectRepository(PropertyEntity)
-    private readonly propertyRepository: Repository<PropertyEntity>,
-  ) {
+  constructor(private readonly propertyService: PropertyService) {
     this.langGraphApp = createLangGraphWorkflow();
     this.userSessions = new Map();
   }
@@ -56,7 +53,8 @@ export class LangchainService {
         const propertyIds = llmReponse.vectors.map((vector) => {
           return vector.metadata.psql_id;
         });
-        const properties = await this.getProperties(propertyIds);
+        const properties =
+          await this.propertyService.getProperties(propertyIds);
         return new ChatResponseDto(llmReponse.currentResponse, properties);
       } else {
         return new ChatResponseDto(llmReponse.currentResponse, []);
@@ -68,6 +66,7 @@ export class LangchainService {
       );
     }
   }
+
 
   chatStreaming(body: ChatInputDto): Observable<string> {
     const { userId, content } = body;
@@ -111,17 +110,5 @@ export class LangchainService {
         subscriber.error(err);
       });
     });
-  }
-
-  async getProperties(ids: number[]): Promise<GetPropertyDto[]> {
-    if (ids.length === 0) return [];
-    return await Promise.all(
-      ids.map(async (id) => {
-        const property = await this.propertyRepository.findOne({
-          where: { id },
-        });
-        return new GetPropertyDto(property);
-      }),
-    );
   }
 }

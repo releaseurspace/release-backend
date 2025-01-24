@@ -1,7 +1,7 @@
 import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { LangchainService } from './langchain.service';
 import { ChatInputDto } from './dtos/chat-input.dto';
-import { ChatResponseDto } from './dtos/char-response.dto';
+import { ChatResponseDto } from './dtos/chat-response.dto';
 import {
   ApiBody,
   ApiOperation,
@@ -9,7 +9,6 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { GetPropertyDto } from './dtos/get-property.dto';
 
 @Controller('langchain')
 export class LangchainController {
