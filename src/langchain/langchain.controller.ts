@@ -1,8 +1,8 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { LangchainService } from './langchain.service';
 import { ChatInputDto } from './dtos/chat-input.dto';
-import { ChatResponseDto } from './dtos/char-response.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ChatResponseDto } from './dtos/chat-response.dto';
 
 @Controller('langchain')
 export class LangchainController {
