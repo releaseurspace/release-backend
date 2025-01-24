@@ -15,6 +15,7 @@ import { routerPromptTemplate } from './prompts/router.prompt';
 import { generalResponsePromptTemplate } from './prompts/general-response.prompt';
 import { generateLocationPromptTemplate } from './prompts/generate-location.prompt';
 
+// 랭체인 메모리 상에서 기억할 정보들
 export const GraphAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
   index: Annotation<string>(),
@@ -26,6 +27,21 @@ export const GraphAnnotation = Annotation.Root({
   currentResponse: Annotation<string>(),
 });
 
+/**
+ * 테스트용 타이머 함수
+ * TODO: 삭제
+ */
+export const formatTimestamp = (timestamp: number) => {
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(timestamp);
+};
+
 // LangGraph 워크플로우 생성을 위한 팩토리
 export const createLangGraphWorkflow = () => {
   const llm = new ChatOpenAI({
@@ -34,23 +50,30 @@ export const createLangGraphWorkflow = () => {
     temperature: 0.7,
   });
 
+  const finalLLM = new ChatOpenAI({
+    apiKey: process.env.OPEN_API_KEY,
+    model: 'gpt-4o-mini',
+    temperature: 0.7,
+    tags: ['final_node'],
+  });
+
   const pineconeService = new PineconeService();
 
   // 사용자 메시지가 부동산 관련 질문인지, 무관한 질문인지 판단하는 로직
   const routeQuery = async (state: typeof GraphAnnotation.State) => {
     const currentMessage = state.messages.slice(-1);
-    const messageHistory = state.messages.slice(-3, -1);
     const prompt = await routerPromptTemplate.invoke({
       current: currentMessage,
-      history: messageHistory,
     });
     const response = await llm.invoke(prompt);
+    console.log(`라우트 완료 시간: ${formatTimestamp(Date.now())}`);
     return {
       ...state,
       route: String(response.content).trim(), // "GENERAL" or "SEARCH"
     };
   };
 
+  // 사용자 메시지에서 주소 정보 뽑아내는 로직
   const generateLocation = async (state: typeof GraphAnnotation.State) => {
     const prompt = await generateLocationPromptTemplate.invoke({
       index: state.index,
@@ -59,7 +82,7 @@ export const createLangGraphWorkflow = () => {
     });
     const response = await llm.invoke(prompt);
     const jsonResponse = JSON.parse(String(response.content));
-    console.log(response);
+    console.log(`로케이션 완료 시간: ${formatTimestamp(Date.now())}`);
     return {
       ...state,
       index: jsonResponse.index,
@@ -79,6 +102,7 @@ export const createLangGraphWorkflow = () => {
     });
     const response = await llm.invoke(prompt);
     const jsonResponse = JSON.parse(String(response.content));
+    console.log(`필터링 완료 시간: ${formatTimestamp(Date.now())}`);
     return {
       ...state,
       filters: jsonResponse.filter_conditions,
@@ -97,6 +121,7 @@ export const createLangGraphWorkflow = () => {
       state.embeddingQuery,
       state.filters,
     );
+    console.log(`검색 완료 시간: ${formatTimestamp(Date.now())}`);
     return {
       ...state,
       vectors,
@@ -107,14 +132,13 @@ export const createLangGraphWorkflow = () => {
   const generateGeneralResponse = async (
     state: typeof GraphAnnotation.State,
   ) => {
-    console.log(state);
     const currentMessage = state.messages.slice(-1);
     const history = state.messages.slice(-3, -1);
     const prompt = await generalResponsePromptTemplate.invoke({
       current: currentMessage,
       history,
     });
-    const response = await llm.invoke(prompt);
+    const response = await finalLLM.invoke(prompt);
     return { messages: response, currentResponse: response.content };
   };
 
@@ -124,10 +148,12 @@ export const createLangGraphWorkflow = () => {
   ) => {
     console.log(state);
     const prompt = await recommendationResponsePromptTemplate.invoke({
+      count: state.vectors.length,
       messages: state.messages,
       vectors: state.vectors,
     });
-    const response = await llm.invoke(prompt);
+    const response = await finalLLM.invoke(prompt);
+    console.log(`추천 응답 완료 시간: ${formatTimestamp(Date.now())}`);
     return { messages: response, currentResponse: response.content };
   };
 
@@ -153,3 +179,5 @@ export const createLangGraphWorkflow = () => {
   const memory = new MemorySaver();
   return workflow.compile({ checkpointer: memory });
 };
+
+export type LangGraphWorkflow = ReturnType<typeof createLangGraphWorkflow>;
