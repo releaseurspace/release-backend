@@ -2,6 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PropertyEntity } from 'src/entities/property.entity';
 
 export class GetPropertyDetailDto {
+  @ApiProperty({ description: 'id' })
+  id: number;
+
   @ApiProperty({ description: '위도' })
   latitude: string;
 
