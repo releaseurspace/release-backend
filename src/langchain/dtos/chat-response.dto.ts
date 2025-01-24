@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { GetPropertyDto } from './get-property.dto';
+import { GetPropertyDto } from 'src/property/dtos/get-property.dto';
 
 export class ChatResponseDto {
   @ApiProperty({ description: 'llm 응답' })
