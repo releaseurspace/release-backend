@@ -7,9 +7,6 @@ import {
 } from 'src/common/langgraph.workflow';
 import { ChatConfig } from 'src/common/types/chat-config.interface';
 import { ChatInputDto } from './dtos/chat-input.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { PropertyEntity } from 'src/entities/property.entity';
 import { PropertyService } from 'src/property/property.service';
 import { ChatResponseDto } from './dtos/chat-response.dto';
 import { Observable } from 'rxjs';
@@ -67,7 +64,6 @@ export class LangchainService {
     }
   }
 
-
   chatStreaming(body: ChatInputDto): Observable<string> {
     const { userId, content } = body;
     const threadId = this.getOrCreateThreadId(userId);
@@ -101,7 +97,8 @@ export class LangchainService {
           const propertyIds = state.values.vectors.map((vector) => {
             return vector.metadata.psql_id;
           });
-          const properties = await this.getProperties(propertyIds);
+          const properties =
+            await this.propertyService.getProperties(propertyIds);
           subscriber.next('Property');
           subscriber.next(JSON.stringify({ properties: properties }));
         }
