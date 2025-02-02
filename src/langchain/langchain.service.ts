@@ -46,7 +46,7 @@ export class LangchainService {
     try {
       const llmReponse = await this.langGraphApp.invoke(input, config);
       console.log(llmReponse);
-      if (llmReponse.mainVectors && llmReponse.route === 'SEARCH') {
+      if (llmReponse.mainVectors && llmReponse.route != 'GENERAL') {
         const propertyIds = llmReponse.mainVectors.map((vector) => {
           return vector.metadata.psql_id;
         });
