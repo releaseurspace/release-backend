@@ -68,6 +68,12 @@ export class GetPropertyDetailDto {
   @ApiProperty({ description: '화장실 정보' })
   bathroom_info: string;
 
+  @ApiProperty({ description: '건물 정보' })
+  building_info: string;
+
+  @ApiProperty({ description: '엘리베이터 개수' })
+  elevator_count: number;
+
   constructor(property: PropertyEntity) {
     this.latitude = property.latitude;
     this.longitude = property.longitude;
@@ -90,5 +96,7 @@ export class GetPropertyDetailDto {
     this.direction = property.direction;
     this.property_registry = property.property_registry;
     this.bathroom_info = property.bathroom_info;
+    this.building_info = property.building_info;
+    this.elevator_count = property.elavator_count;
   }
 }
