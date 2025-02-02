@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import {
   createLangGraphWorkflow,
-  formatTimestamp,
   LangGraphWorkflow,
 } from 'src/common/langgraph.workflow';
 import { ChatConfig } from 'src/common/types/chat-config.interface';
@@ -46,8 +45,9 @@ export class LangchainService {
     };
     try {
       const llmReponse = await this.langGraphApp.invoke(input, config);
-      if (llmReponse.vectors && llmReponse.route === 'SEARCH') {
-        const propertyIds = llmReponse.vectors.map((vector) => {
+      console.log(llmReponse);
+      if (llmReponse.mainVectors && llmReponse.route === 'SEARCH') {
+        const propertyIds = llmReponse.mainVectors.map((vector) => {
           return vector.metadata.psql_id;
         });
         const properties =
@@ -57,6 +57,7 @@ export class LangchainService {
         return new ChatResponseDto(llmReponse.currentResponse, []);
       }
     } catch (error) {
+      console.log(error);
       return new ChatResponseDto(
         '죄송해요. 일시적인 오류로 응답을 생성하는데에 실패했어요.😢',
         [],
@@ -84,7 +85,6 @@ export class LangchainService {
         for await (const { event, tags, data } of stream) {
           if (event === 'on_chat_model_stream' && tags.includes('final_node')) {
             if (data.chunk.content) {
-              console.log(`토큰 보내기:` + data.chunk.content);
               subscriber.next(data.chunk.content);
             }
           }
