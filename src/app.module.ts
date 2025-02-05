@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LangchainModule } from './langchain/langchain.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PropertyModule } from './property/property.module';
+import { SearchModule } from './search/search.module';
 import * as path from 'path';
 
 @Module({
@@ -27,6 +28,7 @@ import * as path from 'path';
     }),
     LangchainModule,
     PropertyModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],
