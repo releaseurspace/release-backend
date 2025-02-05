@@ -14,6 +14,7 @@ import { recommendationResponsePromptTemplate } from './prompts/recommendation-r
 import { routerPromptTemplate } from './prompts/router.prompt';
 import { generalResponsePromptTemplate } from './prompts/general-response.prompt';
 import { generateLocationPromptTemplate } from './prompts/generate-location.prompt';
+import { propertyDetailResponsePromptTemplate } from './prompts/property-detail-response.prompt';
 
 // 랭체인 메모리 상에서 기억할 정보들
 export const GraphAnnotation = Annotation.Root({
@@ -22,15 +23,12 @@ export const GraphAnnotation = Annotation.Root({
   namespace: Annotation<string>(),
   filters: Annotation<Json>(),
   embeddingQuery: Annotation<string>(),
-  vectors: Annotation<any[]>(),
+  mainVectors: Annotation<any[]>(),
+  subVectors: Annotation<any[]>(),
   route: Annotation<string>(),
   currentResponse: Annotation<string>(),
 });
 
-/**
- * 테스트용 타이머 함수
- * TODO: 삭제
- */
 export const formatTimestamp = (timestamp: number) => {
   return new Intl.DateTimeFormat('ko-KR', {
     year: 'numeric',
@@ -59,17 +57,22 @@ export const createLangGraphWorkflow = () => {
 
   const pineconeService = new PineconeService();
 
-  // 사용자 메시지가 부동산 관련 질문인지, 무관한 질문인지 판단하는 로직
+  // 사용자 메시지 라우팅 -> "GENERAL" or "SEARCH" or "DETAILS"
   const routeQuery = async (state: typeof GraphAnnotation.State) => {
-    const currentMessage = state.messages.slice(-1);
+    const current = state.messages.slice(-1);
+    const history = state.messages.slice(0, -1);
     const prompt = await routerPromptTemplate.invoke({
-      current: currentMessage,
+      history,
+      current,
     });
     const response = await llm.invoke(prompt);
+    const route = response.content
+      ? String(response.content).trim()
+      : 'GENERAL';
     console.log(`라우트 완료 시간: ${formatTimestamp(Date.now())}`);
     return {
       ...state,
-      route: String(response.content).trim(), // "GENERAL" or "SEARCH"
+      route,
     };
   };
 
@@ -83,6 +86,7 @@ export const createLangGraphWorkflow = () => {
     const response = await llm.invoke(prompt);
     const jsonResponse = JSON.parse(String(response.content));
     console.log(`로케이션 완료 시간: ${formatTimestamp(Date.now())}`);
+
     return {
       ...state,
       index: jsonResponse.index,
@@ -102,7 +106,8 @@ export const createLangGraphWorkflow = () => {
     });
     const response = await llm.invoke(prompt);
     const jsonResponse = JSON.parse(String(response.content));
-    console.log(`필터링 완료 시간: ${formatTimestamp(Date.now())}`);
+    console.log(`필터링 조건 생성 완료 시간: ${formatTimestamp(Date.now())}`);
+
     return {
       ...state,
       filters: jsonResponse.filter_conditions,
@@ -112,19 +117,30 @@ export const createLangGraphWorkflow = () => {
 
   // 생성한 필터링 조건과 쿼리를 통해 적합한 데이터를 검색하는 로직
   const getSimilarVectors = async (state: typeof GraphAnnotation.State) => {
-    if (!state.index || !state.filters) {
+    if (!state.index || !state.namespace || !state.filters) {
       return { ...state, vectors: [] };
     }
-    const vectors = await pineconeService.getSimilarVectors(
+
+    const mainVectors = await pineconeService.getSimilarVectors(
       state.index,
       state.namespace ?? undefined,
       state.embeddingQuery,
+      3,
       state.filters,
     );
-    console.log(`검색 완료 시간: ${formatTimestamp(Date.now())}`);
+
+    const subVectors = await pineconeService.getSimilarVectors(
+      state.index,
+      state.namespace ?? undefined,
+      state.embeddingQuery,
+      50,
+      undefined,
+    );
+    console.log(`벡터 검색 완료 시간: ${formatTimestamp(Date.now())}`);
     return {
       ...state,
-      vectors,
+      mainVectors,
+      subVectors,
     };
   };
 
@@ -132,28 +148,49 @@ export const createLangGraphWorkflow = () => {
   const generateGeneralResponse = async (
     state: typeof GraphAnnotation.State,
   ) => {
-    const currentMessage = state.messages.slice(-1);
-    const history = state.messages.slice(-3, -1);
+    const current = state.messages.slice(-1);
+    const history = state.messages.slice(0, -1);
+    const isFirst = state.messages.length === 1 ? 'True' : 'False';
     const prompt = await generalResponsePromptTemplate.invoke({
-      current: currentMessage,
+      isFirst,
+      current,
       history,
     });
     const response = await finalLLM.invoke(prompt);
+    console.log(`일반 응답 완료 시간: ${formatTimestamp(Date.now())}`);
     return { messages: response, currentResponse: response.content };
   };
 
-  // 매물 추천 대화 로직
+  // 매물 검색 및 추천 대화 로직
   const generateRecommendationResponse = async (
     state: typeof GraphAnnotation.State,
   ) => {
-    console.log(state);
+    const isFirst = state.messages.length === 1 ? 'True' : 'False';
+    const count = state.mainVectors ? state.mainVectors.length : 0;
     const prompt = await recommendationResponsePromptTemplate.invoke({
-      count: state.vectors.length,
+      isFirst,
+      count,
       messages: state.messages,
-      vectors: state.vectors,
+      vectors: state.mainVectors,
     });
     const response = await finalLLM.invoke(prompt);
-    console.log(`추천 응답 완료 시간: ${formatTimestamp(Date.now())}`);
+    console.log(`추천 응답 시간: ${formatTimestamp(Date.now())}`);
+    return { messages: response, currentResponse: response.content };
+  };
+
+  // 매물 상세 설명 대화 로직
+  const generatePropertyDetailResponse = async (
+    state: typeof GraphAnnotation.State,
+  ) => {
+    const current = state.messages.slice(-1);
+    const history = state.messages.slice(0, -1);
+    const prompt = await propertyDetailResponsePromptTemplate.invoke({
+      current,
+      history,
+      vectors: state.mainVectors,
+    });
+    const response = await finalLLM.invoke(prompt);
+    console.log(`후속 질문 응답 완료 시간: ${formatTimestamp(Date.now())}`);
     return { messages: response, currentResponse: response.content };
   };
 
@@ -164,17 +201,20 @@ export const createLangGraphWorkflow = () => {
     .addNode('recommend', generateRecommendationResponse)
     .addNode('filter', generateFilteringCondition)
     .addNode('search', getSimilarVectors)
+    .addNode('detail', generatePropertyDetailResponse)
 
     .addEdge(START, 'router')
     .addConditionalEdges('router', (state) => state.route, {
       SEARCH: 'location',
       GENERAL: 'general',
+      DETAILS: 'detail',
     })
     .addEdge('location', 'filter')
     .addEdge('filter', 'search')
     .addEdge('search', 'recommend')
     .addEdge('recommend', END)
-    .addEdge('general', END);
+    .addEdge('general', END)
+    .addEdge('detail', END);
 
   const memory = new MemorySaver();
   return workflow.compile({ checkpointer: memory });

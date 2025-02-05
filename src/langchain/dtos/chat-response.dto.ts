@@ -5,11 +5,15 @@ export class ChatResponseDto {
   @ApiProperty({ description: 'llm 응답' })
   chatResponse: string;
 
-  @ApiProperty({ type: [GetPropertyDto], description: '추천할 매물 데이터' })
-  properties: GetPropertyDto[];
+  @ApiProperty({ type: [GetPropertyDto], description: 'AI 추천 매물 데이터 (최대 3개)' })
+  mainProperties: GetPropertyDto[];
 
-  constructor(chatReponse: string, properties: GetPropertyDto[]) {
+  @ApiProperty({type: [GetPropertyDto], description: '그 외 매물 데이터 (최대 50개)'})
+  subProperties: GetPropertyDto[];
+
+  constructor(chatReponse: string, mainProperties: GetPropertyDto[], subProperties: GetPropertyDto[]) {
     this.chatResponse = chatReponse;
-    this.properties = properties;
+    this.mainProperties = mainProperties;
+    this.subProperties = subProperties;
   }
 }

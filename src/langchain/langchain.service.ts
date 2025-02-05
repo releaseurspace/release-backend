@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import {
   createLangGraphWorkflow,
-  formatTimestamp,
   LangGraphWorkflow,
 } from 'src/common/langgraph.workflow';
 import { ChatConfig } from 'src/common/types/chat-config.interface';
@@ -33,32 +32,50 @@ export class LangchainService {
   async chat(body: ChatInputDto): Promise<ChatResponseDto> {
     const { userId, content } = body;
     const threadId = this.getOrCreateThreadId(userId);
+
     const config: ChatConfig = {
       configurable: {
         thread_id: threadId,
       },
     };
+
     const input = {
       messages: {
         role: 'user',
         content,
       },
     };
+
     try {
       const llmReponse = await this.langGraphApp.invoke(input, config);
-      if (llmReponse.vectors && llmReponse.route === 'SEARCH') {
-        const propertyIds = llmReponse.vectors.map((vector) => {
-          return vector.metadata.psql_id;
-        });
-        const properties =
-          await this.propertyService.getProperties(propertyIds);
-        return new ChatResponseDto(llmReponse.currentResponse, properties);
-      } else {
-        return new ChatResponseDto(llmReponse.currentResponse, []);
+
+      if (!llmReponse.mainVectors || llmReponse.route === 'GENERAL') {
+        return new ChatResponseDto(llmReponse.currentResponse, [], []);
       }
+
+      const mainPropertyIds = llmReponse.mainVectors.map((vector) => {
+        return vector.metadata.psql_id;
+      });
+
+      const subPropertyIds = llmReponse.subVectors
+        .map((vector) => vector.metadata.psql_id)
+        .filter((id) => !mainPropertyIds.includes(id));
+
+      const [mainProperties, subProperties] = await Promise.all([
+        this.propertyService.getProperties(mainPropertyIds),
+        this.propertyService.getProperties(subPropertyIds),
+      ]);
+
+      return new ChatResponseDto(
+        llmReponse.currentResponse,
+        mainProperties,
+        subProperties,
+      );
     } catch (error) {
+      console.log(error);
       return new ChatResponseDto(
         '죄송해요. 일시적인 오류로 응답을 생성하는데에 실패했어요.😢',
+        [],
         [],
       );
     }
@@ -84,7 +101,6 @@ export class LangchainService {
         for await (const { event, tags, data } of stream) {
           if (event === 'on_chat_model_stream' && tags.includes('final_node')) {
             if (data.chunk.content) {
-              console.log(`토큰 보내기:` + data.chunk.content);
               subscriber.next(data.chunk.content);
             }
           }

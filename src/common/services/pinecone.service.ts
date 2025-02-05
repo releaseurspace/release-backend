@@ -18,14 +18,20 @@ export class PineconeService {
   }
 
   // 시, 구 정보를 받아 필터링
-  private async init(index: string, namespace: string) {
+  private async init(index: string, namespace?: string) {
     const pineconeIndex = this.pinecone.index(index);
+    const storeOptions: { pineconeIndex: any; namespace?: string } = {
+      pineconeIndex,
+    };
+
+    // `namespace`가 존재하면 추가
+    if (namespace && namespace.trim() !== '') {
+      storeOptions.namespace = namespace;
+    }
+
     this.pinconeStore = await PineconeStore.fromExistingIndex(
       this.embeddingsModel,
-      {
-        pineconeIndex,
-        namespace,
-      },
+      storeOptions,
     );
   }
 
@@ -35,6 +41,7 @@ export class PineconeService {
     index: string,
     namespace: string,
     query: string,
+    count: number,
     filter: any,
   ) {
     await this.init(index, namespace);
@@ -43,7 +50,7 @@ export class PineconeService {
 
     const similarVectors = await this.pinconeStore.similaritySearch(
       query,
-      3,
+      count,
       hasValidFilter ? filter : undefined,
     );
     return similarVectors;
