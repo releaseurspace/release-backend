@@ -1,22 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  createLangGraphWorkflow,
-  LangGraphWorkflow,
-} from 'src/common/langgraph.workflow';
+
 import { ChatConfig } from 'src/common/types/chat-config.interface';
 import { ChatInputDto } from './dtos/chat-input.dto';
 import { PropertyService } from 'src/property/property.service';
 import { ChatResponseDto } from './dtos/chat-response.dto';
 import { Observable } from 'rxjs';
+import { LangGraphApp } from './langgraph.app';
 
 @Injectable()
 export class LangchainService {
-  private readonly langGraphApp: LangGraphWorkflow;
   private readonly userSessions: Map<string, string>;
 
-  constructor(private readonly propertyService: PropertyService) {
-    this.langGraphApp = createLangGraphWorkflow();
+  constructor(
+    private readonly propertyService: PropertyService,
+    private readonly langGraphApp: LangGraphApp,
+  ) {
     this.userSessions = new Map();
   }
 
@@ -47,7 +46,7 @@ export class LangchainService {
     };
 
     try {
-      const llmReponse = await this.langGraphApp.invoke(input, config);
+      const llmReponse = await this.langGraphApp.workflow.invoke(input, config);
 
       if (!llmReponse.mainVectors || llmReponse.route === 'GENERAL') {
         return new ChatResponseDto(llmReponse.currentResponse, [], []);
@@ -94,7 +93,7 @@ export class LangchainService {
 
     return new Observable((subscriber) => {
       (async () => {
-        const stream = this.langGraphApp.streamEvents(input, {
+        const stream = this.langGraphApp.workflow.streamEvents(input, {
           version: 'v2',
           configurable: { thread_id: threadId },
         });
@@ -105,7 +104,7 @@ export class LangchainService {
             }
           }
         }
-        const state = await this.langGraphApp.getState({
+        const state = await this.langGraphApp.workflow.getState({
           configurable: { thread_id: threadId },
         });
         console.log(state);
