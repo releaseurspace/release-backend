@@ -32,34 +32,50 @@ export class LangchainService {
   async chat(body: ChatInputDto): Promise<ChatResponseDto> {
     const { userId, content } = body;
     const threadId = this.getOrCreateThreadId(userId);
+
     const config: ChatConfig = {
       configurable: {
         thread_id: threadId,
       },
     };
+
     const input = {
       messages: {
         role: 'user',
         content,
       },
     };
+
     try {
       const llmReponse = await this.langGraphApp.invoke(input, config);
-      console.log(llmReponse);
-      if (llmReponse.mainVectors && llmReponse.route != 'GENERAL') {
-        const propertyIds = llmReponse.mainVectors.map((vector) => {
-          return vector.metadata.psql_id;
-        });
-        const properties =
-          await this.propertyService.getProperties(propertyIds);
-        return new ChatResponseDto(llmReponse.currentResponse, properties);
-      } else {
-        return new ChatResponseDto(llmReponse.currentResponse, []);
+
+      if (!llmReponse.mainVectors || llmReponse.route === 'GENERAL') {
+        return new ChatResponseDto(llmReponse.currentResponse, [], []);
       }
+
+      const mainPropertyIds = llmReponse.mainVectors.map((vector) => {
+        return vector.metadata.psql_id;
+      });
+
+      const subPropertyIds = llmReponse.subVectors
+        .map((vector) => vector.metadata.psql_id)
+        .filter((id) => !mainPropertyIds.includes(id));
+
+      const [mainProperties, subProperties] = await Promise.all([
+        this.propertyService.getProperties(mainPropertyIds),
+        this.propertyService.getProperties(subPropertyIds),
+      ]);
+
+      return new ChatResponseDto(
+        llmReponse.currentResponse,
+        mainProperties,
+        subProperties,
+      );
     } catch (error) {
       console.log(error);
       return new ChatResponseDto(
         '죄송해요. 일시적인 오류로 응답을 생성하는데에 실패했어요.😢',
+        [],
         [],
       );
     }
