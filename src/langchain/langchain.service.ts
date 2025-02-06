@@ -98,25 +98,38 @@ export class LangchainService {
           version: 'v2',
           configurable: { thread_id: threadId },
         });
+
         for await (const { event, tags, data } of stream) {
           if (event === 'on_chat_model_stream' && tags.includes('final_node')) {
             if (data.chunk.content) {
+              console.log('토큰 전송');
               subscriber.next(data.chunk.content);
             }
           }
         }
+
         const state = await this.langGraphApp.getState({
           configurable: { thread_id: threadId },
         });
         console.log(state);
-        if (state.values.vectors || state.values.route == 'SEARCH') {
-          const propertyIds = state.values.vectors.map((vector) => {
+
+        if (state.values.vectors || state.values.route !== 'GENERAL') {
+          const mainPropertyIds = state.values.mainVectors.map((vector) => {
             return vector.metadata.psql_id;
           });
-          const properties =
-            await this.propertyService.getProperties(propertyIds);
+
+          const subPropertyIds = state.values.subVectors.map((vector) => {
+            return vector.metadata.psql_id;
+          });
+
+          const [mainProperties, subProperties] = await Promise.all([
+            this.propertyService.getProperties(mainPropertyIds),
+            this.propertyService.getProperties(subPropertyIds),
+          ]);
+
           subscriber.next('Property');
-          subscriber.next(JSON.stringify({ properties: properties }));
+          subscriber.next(JSON.stringify({ mainProperties: mainProperties }));
+          subscriber.next(JSON.stringify({ subProperties: subProperties }));
         }
         subscriber.complete();
       })().catch((err) => {
