@@ -119,10 +119,10 @@ export class LangchainController {
     const stream$ = this.langchainService.chatStreaming(body);
     const subscription = stream$.subscribe({
       next: (content) => {
-        if (content === 'Property') {
+        if (content === 'Token') {
           mode = 1;
-          res.write(`${JSON.stringify({ state: 'property' })}\n`);
-        } else if (mode === 0) {
+          res.write(`${JSON.stringify({ state: 'token' })}\n`);
+        } else if (mode === 1) {
           res.write(`${JSON.stringify({ token: content })}\n`);
         } else {
           res.write(`${content}\n`);
