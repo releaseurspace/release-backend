@@ -40,66 +40,108 @@ export class LangchainController {
   @ApiProduces('text/event-stream')
   @ApiResponse({
     status: 200,
-    description: '스트리밍 응답',
+    description:
+      '스트리밍 응답. 이 API는 SSE(Server-Sent Events)를 활용하여 실시간으로 대화 토큰, 매물 데이터 배열, 스트림 상태 정보를 전송합니다.',
     content: {
       'text/event-stream': {
         schema: {
           type: 'object',
           properties: {
-            token: { type: 'string', description: '대화 토큰' },
-            properties: { type: 'string', description: '매물 데이터' },
+            mainProperties: {
+              type: 'array',
+              description: 'AI 추천 매물 데이터 배열',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'number', description: '매물 ID' },
+                  latitude: { type: 'string', description: '위도' },
+                  longitude: { type: 'string', description: '경도' },
+                  purpose: { type: 'string', description: '업종' },
+                  deposit: {
+                    type: 'number',
+                    description: '보증금 (만원 단위)',
+                  },
+                  monthly_rent: {
+                    type: 'number',
+                    description: '월세 (만원 단위)',
+                  },
+                  key_money: {
+                    type: 'number',
+                    description: '권리금 (만원 단위)',
+                  },
+                  maintenance_fee: {
+                    type: 'number',
+                    description: '관리비 (만원 단위)',
+                  },
+                  size: {
+                    type: 'number',
+                    description: '평수',
+                  },
+                  description: { type: 'string', description: '매물 설명' },
+                  floor: { type: 'string', description: '층수' },
+                  nearest_station: {
+                    type: 'string',
+                    description: '가장 가까운 지하철 역',
+                  },
+                  distance_to_station: {
+                    type: 'string',
+                    description: '지하철 역까지의 도보 시간',
+                  },
+                },
+              },
+            },
+            subProperties: {
+              type: 'array',
+              description: '그 외 추천 매물 데이터 배열',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'number', description: '매물 ID' },
+                  latitude: { type: 'string', description: '위도' },
+                  longitude: { type: 'string', description: '경도' },
+                  purpose: { type: 'string', description: '업종' },
+                  deposit: {
+                    type: 'number',
+                    description: '보증금 (만원 단위)',
+                  },
+                  monthly_rent: {
+                    type: 'number',
+                    description: '월세 (만원 단위)',
+                  },
+                  key_money: {
+                    type: 'number',
+                    description: '키머니 (만원 단위)',
+                  },
+                  maintenance_fee: {
+                    type: 'number',
+                    description: '관리비 (만원 단위)',
+                  },
+                  size: {
+                    type: 'number',
+                    description: '면적 (평 또는 제곱미터)',
+                  },
+                  description: { type: 'string', description: '매물 설명' },
+                  floor: { type: 'string', description: '층수' },
+                  nearest_station: {
+                    type: 'string',
+                    description: '가장 가까운 지하철 역',
+                  },
+                  distance_to_station: {
+                    type: 'string',
+                    description: '지하철 역까지의 도보 시간',
+                  },
+                },
+              },
+            },
             state: {
               type: 'string',
-              enum: ['property', 'error', 'end'],
+              enum: ['token', 'error', 'end'],
               description: '스트림 상태',
             },
-          },
-        },
-        examples: {
-          token: {
-            value: { token: '안녕하세요' },
-            description: '대화 토큰 스트리밍',
-          },
-          properties: {
-            value: {
-              properties: `${[
-                {
-                  id: 61206,
-                  latitude: '37.5610074',
-                  longitude: '127.0481247',
-                  purpose: '한식점',
-                  deposit: 2000,
-                  monthly_rent: 120,
-                  key_money: 5000,
-                  maintenance_fee: 0,
-                  size: 11,
-                  description: '사근동 전수양도 가능한 음식점',
-                  floor: '지상 1층',
-                  nearest_station: '용답역',
-                  distance_to_station: '도보 4분',
-                },
-                {
-                  id: 61159,
-                  latitude: '37.5637652',
-                  longitude: '127.0327073',
-                  purpose: '기타창업모음',
-                  deposit: 2000,
-                  monthly_rent: 120,
-                  key_money: 0,
-                  maintenance_fee: 10,
-                  size: 21,
-                  description: '성동구 도선동 즉시 입주 가능한 지층 상가',
-                  floor: '지하 1층',
-                  nearest_station: '상왕십리역',
-                  distance_to_station: '도보 5분',
-                },
-              ]}`,
+            token: {
+              type: 'string',
+              description: 'LLM 응답 토큰',
             },
-            description: '매물 데이터 배열',
-          },
-          state: {
-            value: { state: 'property' },
-            description: '부동산 매물 응답 상태',
           },
         },
       },
@@ -114,15 +156,14 @@ export class LangchainController {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    console.log(body);
     let mode = 0;
     const stream$ = this.langchainService.chatStreaming(body);
     const subscription = stream$.subscribe({
       next: (content) => {
-        if (content === 'Property') {
+        if (content === 'Token') {
           mode = 1;
-          res.write(`${JSON.stringify({ state: 'property' })}\n`);
-        } else if (mode === 0) {
+          res.write(`${JSON.stringify({ state: 'token' })}\n`);
+        } else if (mode === 1) {
           res.write(`${JSON.stringify({ token: content })}\n`);
         } else {
           res.write(`${content}\n`);
