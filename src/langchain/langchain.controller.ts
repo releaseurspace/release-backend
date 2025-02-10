@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { LangchainService } from './langchain.service';
 import { ChatInputDto } from './dtos/chat-input.dto';
 import { ChatResponseDto } from './dtos/chat-response.dto';
@@ -6,9 +6,11 @@ import {
   ApiBody,
   ApiOperation,
   ApiProduces,
+  ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
+import { GetRecommendedPropertiesResDto } from './dtos/get-recommended-properties-res.dto';
 
 @Controller('langchain')
 export class LangchainController {
@@ -47,97 +49,6 @@ export class LangchainController {
         schema: {
           type: 'object',
           properties: {
-            mainProperties: {
-              type: 'array',
-              description: 'AI 추천 매물 데이터 배열',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'number', description: '매물 ID' },
-                  latitude: { type: 'string', description: '위도' },
-                  longitude: { type: 'string', description: '경도' },
-                  purpose: { type: 'string', description: '업종' },
-                  deposit: {
-                    type: 'number',
-                    description: '보증금 (만원 단위)',
-                  },
-                  monthly_rent: {
-                    type: 'number',
-                    description: '월세 (만원 단위)',
-                  },
-                  key_money: {
-                    type: 'number',
-                    description: '권리금 (만원 단위)',
-                  },
-                  maintenance_fee: {
-                    type: 'number',
-                    description: '관리비 (만원 단위)',
-                  },
-                  size: {
-                    type: 'number',
-                    description: '평수',
-                  },
-                  description: { type: 'string', description: '매물 설명' },
-                  floor: { type: 'string', description: '층수' },
-                  nearest_station: {
-                    type: 'string',
-                    description: '가장 가까운 지하철 역',
-                  },
-                  distance_to_station: {
-                    type: 'string',
-                    description: '지하철 역까지의 도보 시간',
-                  },
-                },
-              },
-            },
-            subProperties: {
-              type: 'array',
-              description: '그 외 추천 매물 데이터 배열',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'number', description: '매물 ID' },
-                  latitude: { type: 'string', description: '위도' },
-                  longitude: { type: 'string', description: '경도' },
-                  purpose: { type: 'string', description: '업종' },
-                  deposit: {
-                    type: 'number',
-                    description: '보증금 (만원 단위)',
-                  },
-                  monthly_rent: {
-                    type: 'number',
-                    description: '월세 (만원 단위)',
-                  },
-                  key_money: {
-                    type: 'number',
-                    description: '키머니 (만원 단위)',
-                  },
-                  maintenance_fee: {
-                    type: 'number',
-                    description: '관리비 (만원 단위)',
-                  },
-                  size: {
-                    type: 'number',
-                    description: '면적 (평 또는 제곱미터)',
-                  },
-                  description: { type: 'string', description: '매물 설명' },
-                  floor: { type: 'string', description: '층수' },
-                  nearest_station: {
-                    type: 'string',
-                    description: '가장 가까운 지하철 역',
-                  },
-                  distance_to_station: {
-                    type: 'string',
-                    description: '지하철 역까지의 도보 시간',
-                  },
-                },
-              },
-            },
-            state: {
-              type: 'string',
-              enum: ['token', 'error', 'end'],
-              description: '스트림 상태',
-            },
             token: {
               type: 'string',
               description: 'LLM 응답 토큰',
@@ -156,18 +67,10 @@ export class LangchainController {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    let mode = 0;
     const stream$ = this.langchainService.chatStreaming(body);
     const subscription = stream$.subscribe({
       next: (content) => {
-        if (content === 'Token') {
-          mode = 1;
-          res.write(`${JSON.stringify({ state: 'token' })}\n`);
-        } else if (mode === 1) {
-          res.write(`${JSON.stringify({ token: content })}\n`);
-        } else {
-          res.write(`${content}\n`);
-        }
+        res.write(`${JSON.stringify({ token: content })}\n`);
       },
       error: (err) => {
         res.write(`${JSON.stringify({ state: 'error' })}\n`);
@@ -181,5 +84,22 @@ export class LangchainController {
       subscription.unsubscribe();
       res.end();
     });
+  }
+
+  @Get('properties')
+  @ApiOperation({
+    summary: '추천 매물 가져오기',
+    description: '챗봇 추천 매물리스트를 가져옵니다.',
+  })
+  @ApiQuery({ name: 'userId', description: 'user 식별자 (임시)' })
+  @ApiResponse({
+    status: 201,
+    description: 'LLM 호출 성공',
+    type: GetRecommendedPropertiesResDto,
+  })
+  async getRecommendedProperties(
+    @Query('userId') userId: string,
+  ): Promise<GetRecommendedPropertiesResDto> {
+    return await this.langchainService.getRecommendedProperties(userId);
   }
 }

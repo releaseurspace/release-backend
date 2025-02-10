@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LangchainModule } from './langchain/langchain.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PropertyModule } from './property/property.module';
+import { SearchModule } from './search/search.module';
 import * as path from 'path';
 
 @Module({
@@ -21,12 +22,13 @@ import * as path from 'path';
         password: configService.get('DB_PASSWORD'),
         entities: [path.join(__dirname, '/entities/**/*.entity.{js, ts}')],
         synchronize: true,
-        logging: true,
+        logging: false,
         timezone: 'Asia/Seoul',
       }),
     }),
     LangchainModule,
     PropertyModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

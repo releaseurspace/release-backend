@@ -1,7 +1,9 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
+import { Injectable } from '@nestjs/common';
 import { Pinecone as PineconeClient } from '@pinecone-database/pinecone';
 
+@Injectable()
 export class PineconeService {
   private pinecone: PineconeClient;
   private embeddingsModel: OpenAIEmbeddings;

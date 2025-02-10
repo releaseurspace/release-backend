@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { LangchainService } from './langchain.service';
 import { LangchainController } from './langchain.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { PropertyEntity } from 'src/entities/property.entity';
 import { PropertyModule } from 'src/property/property.module';
+import { PineconeService } from 'src/common/services/pinecone.service';
+import { LangGraphApp } from './langgraph.app';
 
 @Module({
   imports: [PropertyModule],
-  providers: [LangchainService],
+  providers: [LangchainService, LangGraphApp, PineconeService],
   controllers: [LangchainController],
 })
 export class LangchainModule {}
