@@ -22,7 +22,7 @@ import * as path from 'path';
         password: configService.get('DB_PASSWORD'),
         entities: [path.join(__dirname, '/entities/**/*.entity.{js, ts}')],
         synchronize: true,
-        logging: true,
+        logging: false,
         timezone: 'Asia/Seoul',
       }),
     }),
