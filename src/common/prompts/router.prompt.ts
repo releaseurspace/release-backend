@@ -14,8 +14,9 @@ export const routerPromptTemplate = ChatPromptTemplate.fromMessages([
        - property attributes such as size, budget, or location
        Then return "SEARCH".
 
-    2. If the user's message is asking for **details about a previously recommended property** (e.g., price, location, features), 
-       but does **not** request a new search, return "DETAILS".
+    2. If the user's message is asking for details about a previously recommended property 
+       (e.g., price, location, features) or is referring to a specific ranking or ordinal (such as "1등", "2등", "3등"),
+       and does not request a new search, then return "DETAILS".
 
     3. Otherwise, return "GENERAL".
     `,
