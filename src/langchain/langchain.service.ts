@@ -147,5 +147,6 @@ export class LangchainService {
 
       return new GetRecommendedPropertiesResDto(mainProperties, subProperties);
     }
+    return new GetRecommendedPropertiesResDto([], []);
   }
 }
