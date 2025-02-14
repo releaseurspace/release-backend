@@ -56,7 +56,10 @@ export class LangchainService {
       console.log('namespace : ', llmResponse.namespace);
       console.log('필터 정보 : ', llmResponse.filters);
       console.log('쿼리 정보 : ', llmResponse.embeddingQuery);
-      console.log('찾은 매물 개수 : ', llmResponse.mainVectors.length);
+      console.log(
+        '찾은 매물 개수 : ',
+        llmResponse.mainVectors ? llmResponse.mainVectors.length : 0,
+      );
 
       if (!llmResponse.mainVectors || llmResponse.route === 'GENERAL') {
         return new ChatResponseDto(llmResponse.currentResponse, [], []);

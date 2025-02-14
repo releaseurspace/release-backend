@@ -18,6 +18,7 @@ import { GenerateFilteringConditionPromptTemplate } from 'src/common/prompts/gen
 import { generalResponsePromptTemplate } from 'src/common/prompts/general-response.prompt';
 import { recommendationResponsePromptTemplate } from 'src/common/prompts/recommendation-response.prompt';
 import { propertyDetailResponsePromptTemplate } from 'src/common/prompts/property-detail-response.prompt';
+import { feedbackResponsePromptTemplate } from 'src/common/prompts/feedback-response.prompt';
 
 // 랭체인 메모리 상에서 기억할 정보들
 export const GraphAnnotation = Annotation.Root({
@@ -202,6 +203,21 @@ export class LangGraphApp {
       return { messages: response, currentResponse: response.content };
     };
 
+    const generateFeedbackResponse = async (
+      state: typeof GraphAnnotation.State,
+    ) => {
+      const current = state.messages.slice(-1);
+      const prompt = await feedbackResponsePromptTemplate.invoke({
+        namespace: state.namespace,
+        filters: state.filters,
+        embeddingQuery: state.embeddingQuery,
+        current,
+      });
+      const response = await finalLLM.invoke(prompt);
+      console.log(`피드백 응답 완료 시간: ${formatTimestamp(Date.now())}`);
+      return { messages: response, currentResponse: response.content };
+    };
+
     const workflow = new StateGraph(GraphAnnotation)
       .addNode('router', routeQuery)
       .addNode('location', generateLocation)
@@ -210,19 +226,22 @@ export class LangGraphApp {
       .addNode('filter', generateFilteringCondition)
       .addNode('search', getSimilarVectors)
       .addNode('detail', generatePropertyDetailResponse)
+      .addNode('feedback', generateFeedbackResponse)
 
       .addEdge(START, 'router')
       .addConditionalEdges('router', (state) => state.route, {
         SEARCH: 'location',
         GENERAL: 'general',
         DETAILS: 'detail',
+        FEEDBACK: 'feedback',
       })
       .addEdge('location', 'filter')
       .addEdge('filter', 'search')
       .addEdge('search', 'recommend')
       .addEdge('recommend', END)
       .addEdge('general', END)
-      .addEdge('detail', END);
+      .addEdge('detail', END)
+      .addEdge('feedback', END);
 
     const memory = new MemorySaver();
     return workflow.compile({ checkpointer: memory });
