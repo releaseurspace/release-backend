@@ -11,7 +11,7 @@ export const GenerateFilteringConditionPromptTemplate =
       1. **위치 정보 (지하철역, 도보 거리, 지역명 등)**  
       2. **금액 조건 (보증금/월세/권리금/관리비)**  
       3. **평수 조건 (m² 변환 포함)**  
-      4. **검색 쿼리 정제 및 업데이트**  
+      4. **검색 쿼리 정제 및 업데이트**
 
       ---  
       **JSON 응답 형식:**  
@@ -24,7 +24,9 @@ export const GenerateFilteringConditionPromptTemplate =
       **금액 필터링 규칙 (단위: 만원)**  
       - 최신 메시지에서 명확한 금액 정보가 있으면 업데이트.  
       - 기존 조건과 비교하여, 새로운 금액 정보가 있을 경우 업데이트.  
-      - 금액 조건이 최신 메시지에서 삭제되거나 명확하지 않을 경우 해당 조건 제거.  
+      - 금액 조건이 최신 메시지에서 삭제되거나 명확하지 않을 경우 해당 조건 제거. 
+      
+      **Available Field:** deposit(보증금), monthly_rent(월세), key_money(권리금), maintenance_fee(관리비)
 
       **금액 표현 예시:**  
       - **정확한 금액:**  

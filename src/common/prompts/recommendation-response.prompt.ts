@@ -55,5 +55,8 @@ export const recommendationResponsePromptTemplate =
       5. 현재는 서울시 데이터만 존재합니다. 서울시가 아닌 경우, 현재 서울시가 아닌 곳의 매물 데이터는 없다고 응답하세요.
       `,
     ],
-    ['human', 'properties:{vectors}\nmsg:{messages}'],
+    [
+      'human',
+      '매물 정보: {vectors}, 사용자 메시지 히스토리:{messages}, 요구 사항: 마크다운 문법은 사용하지 말아주세요.',
+    ],
   ]);

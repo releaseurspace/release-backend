@@ -24,6 +24,7 @@ export const generateLocationPromptTemplate = ChatPromptTemplate.fromMessages([
        - 코엑스몰 -> 서울시 강남구 -> seoul, gangnam
        - 숙명여대 -> 서울시 용산구 -> seoul, yongsan
        - 대림동 -> 서울시 영등포구 -> seoul, yeongdeungpo
+       - 서울역 -> 서울시 중구 -> seoul, jung
 
        단, 위치 정보가 불명확하거나 시/구 정보가 없으면 절대 임의로 데이터를 채우지 말고, 빈 값을 반환하십시오.
        - 순수 JSON 형식으로 응답해야 합니다.
